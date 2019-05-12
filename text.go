@@ -6,6 +6,8 @@ import (
 	"unicode/utf8"
 )
 
+// TODO: this code would benefits a lot from using strings.Builder or similar
+
 // Force runewidth not to treat ambiguous runes as wide chars, so that things
 // like unicode ellipsis/up/down/left/right glyphs can have correct runewidth
 // and can be displayed correctly in terminals.
@@ -175,28 +177,29 @@ func applyTermEscapes(line string, escapes []escapeItem) string {
 	currPos := 0
 	currItem := 0
 	for _, r := range line {
-		if currItem < len(escapes) && currPos == escapes[currItem].pos {
+		if r == '\n' {
 			// NOTE: We avoid terminal escapes at the end of a line by move them one
 			// pass the end of line, so that algorithms who trim right spaces are
 			// happy. But algorithms who trim left spaces are still unhappy.
-			if r == '\n' {
-				out += "\n" + escapes[currItem].item
-			} else {
-				out += escapes[currItem].item + string(r)
-				currPos++
+			out += "\n"
+			for currItem < len(escapes) && currPos == escapes[currItem].pos {
+				out += escapes[currItem].item
+				currItem++
 			}
-			currItem++
 		} else {
-			if r != '\n' {
-				currPos++
+			for currItem < len(escapes) && currPos == escapes[currItem].pos {
+				out += escapes[currItem].item
+				currItem++
 			}
 			out += string(r)
+			currPos++
 		}
 	}
 
-	// Don't forget the trailing escape, if any.
-	if currItem == len(escapes)-1 && currPos == escapes[currItem].pos {
+	// Don't forget the trailing escapes, if any.
+	for currItem < len(escapes) && currPos == escapes[currItem].pos {
 		out += escapes[currItem].item
+		currItem++
 	}
 
 	return out
