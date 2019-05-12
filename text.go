@@ -19,19 +19,26 @@ func Wrap(text string, lineWidth int) (string, int) {
 	return WrapLeftPadded(text, lineWidth, 0)
 }
 
-// Wrap a text for an exact line size with a left padding
+// Wrap a text for an exact line size with a left padding of spaces
 // Handle properly terminal color escape code
 func WrapLeftPadded(text string, lineWidth int, leftPad int) (string, int) {
+	pad := strings.Repeat(" ", leftPad)
+	return WrapWithPad(text, lineWidth, pad)
+}
+
+// Wrap a text for an exact line size with a custom left padding
+// Handle properly terminal color escape code
+func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
 	var lines []string
 	nbLine := 0
-	pad := strings.Repeat(" ", leftPad)
+	leftPad := wordLen(pad)
 
 	// tabs are formatted as 4 spaces
 	text = strings.Replace(text, "\t", "    ", -1)
 	// NOTE: text is first segmented into lines so that softwrapLine can handle.
 	for _, line := range strings.Split(text, "\n") {
 		if line == "" || strings.TrimSpace(line) == "" {
-			lines = append(lines, "")
+			lines = append(lines, strings.TrimRight(pad, " "))
 			nbLine++
 		} else {
 			wrapped := softwrapLine(line, lineWidth-leftPad)
