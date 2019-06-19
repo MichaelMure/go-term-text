@@ -159,7 +159,7 @@ func TestWrapLeftPadded(t *testing.T) {
     蚗佶庂咺丌，輀鈁乇彽洢溦洰氶乇构碨洐巿阹。`,
 			59, 4,
 		},
-		// Handle long unbreakable words in a full stentence
+		// Handle long unbreakable words in a full sentence
 		{
 			"OT: there are alternatives to maintainer-/user-set priority, e.g. \"[user pain](http://www.lostgarden.com/2008/05/improving-bug-triage-with-user-pain.html)\".",
 			`    OT: there are alternatives to maintainer-/user-set
@@ -219,7 +219,7 @@ func TestWordLen(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := wordLen(tc.Input)
+		l := WordLen(tc.Input)
 		if l != tc.Length {
 			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%d`\n\nActual Output:\n\n`%d`",
 				i, tc.Input, tc.Length, l)

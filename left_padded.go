@@ -3,8 +3,9 @@ package text
 import (
 	"bytes"
 	"fmt"
-	"github.com/mattn/go-runewidth"
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // LeftPadMaxLine pads a string on the left by a specified amount and pads the

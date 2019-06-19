@@ -1,9 +1,10 @@
 package text
 
 import (
-	"github.com/mattn/go-runewidth"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // TODO: this code would benefits a lot from using strings.Builder or similar
@@ -33,7 +34,7 @@ func WrapLeftPadded(text string, lineWidth int, leftPad int) (string, int) {
 func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
 	var lines []string
 	nbLine := 0
-	leftPad := wordLen(pad)
+	leftPad := WordLen(pad)
 
 	// tabs are formatted as 4 spaces
 	text = strings.Replace(text, "\t", "    ", -1)
@@ -86,7 +87,7 @@ func softwrapLine(line string, textWidth int) string {
 	var width int = 0
 	for len(chunks) > 0 {
 		thisWord := chunks[len(chunks)-1]
-		wl := wordLen(thisWord)
+		wl := WordLen(thisWord)
 		if width+wl <= textWidth {
 			line2 += chunks[len(chunks)-1]
 			chunks = chunks[:len(chunks)-1]
@@ -277,9 +278,9 @@ func runeType(r rune) int {
 	}
 }
 
-// wordLen return the length of a word, while ignoring the terminal escape
+// WordLen return the length of a word, while ignoring the terminal escape
 // sequences
-func wordLen(word string) int {
+func WordLen(word string) int {
 	length := 0
 	escape := false
 
