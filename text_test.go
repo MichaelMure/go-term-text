@@ -133,6 +133,13 @@ func TestWrap(t *testing.T) {
 	}
 }
 
+func BenchmarkWrap(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		Wrap("敏捷 A \x1b31mquick 的狐狸 fox 跳\x1b0m过 jumps over a lazy 了一只懒狗 dog。", 12)
+	}
+}
+
 func TestWrapLeftPadded(t *testing.T) {
 	cases := []struct {
 		input, output string
@@ -186,6 +193,13 @@ func TestWrapLeftPadded(t *testing.T) {
 	}
 }
 
+func BenchmarkWrapLeftPadded(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		WrapLeftPadded("The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.", 59, 4)
+	}
+}
+
 func TestWordLen(t *testing.T) {
 	cases := []struct {
 		Input  string
@@ -224,6 +238,13 @@ func TestWordLen(t *testing.T) {
 			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%d`\n\nActual Output:\n\n`%d`",
 				i, tc.Input, tc.Length, l)
 		}
+	}
+}
+
+func BenchmarkWordLen(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		WordLen("快\x1b[31m檢什麼\x1b[0m望對")
 	}
 }
 
@@ -294,6 +315,13 @@ func TestSplitWord(t *testing.T) {
 			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%s` - `%s`\n\nActual Output:\n\n`%s` - `%s`",
 				i, tc.Input, tc.Result, tc.Leftover, result, leftover)
 		}
+	}
+}
+
+func BenchmarkSplitWord(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		splitWord("快\x1b[31m檢什麼\x1b[0m望對", 4)
 	}
 }
 
@@ -390,5 +418,12 @@ func TestSegmentLines(t *testing.T) {
 			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`[%s]`\n\nActual Output:\n\n`[%s]`\n\n",
 				i, tc.Input, strings.Join(tc.Output, ", "), strings.Join(chunks, ", "))
 		}
+	}
+}
+
+func BenchmarkSegmentLines(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		segmentLine("This is a 'complex' example, where   一只 and English 混合了。")
 	}
 }

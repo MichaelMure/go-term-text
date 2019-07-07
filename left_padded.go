@@ -11,7 +11,7 @@ import (
 // LeftPadMaxLine pads a string on the left by a specified amount and pads the
 // string on the right to fill the maxLength
 func LeftPadMaxLine(text string, length, leftPad int) string {
-	var rightPart string = text
+	var rightPart = text
 
 	scrWidth := runewidth.StringWidth(text)
 	// truncate and ellipse if needed
@@ -33,10 +33,16 @@ func LeftPad(text string, leftPad int) string {
 
 	pad := strings.Repeat(" ", leftPad)
 
-	for _, line := range strings.Split(text, "\n") {
+	lines := strings.Split(text, "\n")
+
+	for i, line := range lines {
 		result.WriteString(pad)
 		result.WriteString(line)
-		result.WriteString("\n")
+
+		// no additional line break at the end
+		if i < len(lines)-1 {
+			result.WriteString("\n")
+		}
 	}
 
 	return result.String()
