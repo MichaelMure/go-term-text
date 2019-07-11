@@ -32,29 +32,67 @@ func WrapLeftPadded(text string, lineWidth int, leftPad int) (string, int) {
 // Wrap a text for an exact line size with a custom left padding
 // Handle properly terminal color escape code
 func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
+	return WrapWithPadIndent(text, lineWidth, pad, pad)
+}
+
+// Wrap a text for an exact line size with a custom left padding and a first line
+// indent. The padding is not effective on the first line, indent is used instead,
+// which allow to implement indents and outdents.
+// Handle properly terminal color escape code
+func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (string, int) {
 	var lines []string
 	nbLine := 0
-	leftPad := WordLen(pad)
+
+	// Start with the indent
+	padStr := indent
+	padLen := WordLen(indent)
 
 	// tabs are formatted as 4 spaces
 	text = strings.Replace(text, "\t", "    ", -1)
+
 	// NOTE: text is first segmented into lines so that softwrapLine can handle.
-	for _, line := range strings.Split(text, "\n") {
+	for i, line := range strings.Split(text, "\n") {
+		// on the second line, use the padding instead
+		if i == 1 {
+			padStr = pad
+			padLen = WordLen(pad)
+		}
+
 		if line == "" || strings.TrimSpace(line) == "" {
-			lines = append(lines, strings.TrimRight(pad, " "))
+			// nothing in the line, we just add the non-empty part of the padding
+			lines = append(lines, strings.TrimRight(padStr, " "))
 			nbLine++
-		} else {
-			wrapped := softwrapLine(line, lineWidth-leftPad)
-			firstLine := true
-			for _, seg := range strings.Split(wrapped, "\n") {
-				if firstLine {
-					lines = append(lines, pad+strings.TrimRight(seg, " "))
-					firstLine = false
-				} else {
-					lines = append(lines, pad+strings.TrimSpace(seg))
-				}
-				nbLine++
+			continue
+		}
+
+		wrapped := softwrapLine(line, lineWidth-padLen)
+		split := strings.Split(wrapped, "\n")
+
+		if i == 0 && len(split) > 1 {
+			// the very first line got wrapped
+			// that means we need to switch to the normal padding
+			// use the first wrapped line, ignore everything else and
+			// wrap the remaining of the line with the normal padding.
+
+			lines = append(lines, padStr+strings.TrimRight(split[0], " "))
+			nbLine++
+			line = strings.TrimPrefix(line, split[0])
+			line = strings.TrimLeft(line, " ")
+
+			padStr = pad
+			padLen = WordLen(pad)
+			wrapped = softwrapLine(line, lineWidth-padLen)
+			split = strings.Split(wrapped, "\n")
+		}
+
+		for j, seg := range split {
+			if j == 0 {
+				// keep the left padding of the wrapped line
+				lines = append(lines, padStr+strings.TrimRight(seg, " "))
+			} else {
+				lines = append(lines, padStr+strings.TrimSpace(seg))
 			}
+			nbLine++
 		}
 	}
 	return strings.Join(lines, "\n"), nbLine
