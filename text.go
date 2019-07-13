@@ -114,7 +114,7 @@ func softwrapLine(line string, textWidth int) string {
 	// NOTE: terminal escapes are stripped out of the line so the algorithm is
 	// simpler. Do not try to mix them in the wrapping algorithm, as it can get
 	// complicated quickly.
-	line1, termEscapes := extractTermEscapes(line)
+	line1, termEscapes := ExtractTermEscapes(line)
 
 	chunks := segmentLine(line1)
 	// Reverse the chunk array so we can use it as a stack.
@@ -162,9 +162,9 @@ func softwrapLine(line string, textWidth int) string {
 // escape command, and 'pos' is the index in the rune array where the 'item'
 // shall be inserted back. For example, the escape item in "F\x1b33mox" is
 // {"\x1b33m", 1}.
-type escapeItem struct {
-	item string
-	pos  int
+type EscapeItem struct {
+	Item string
+	Pos  int
 }
 
 // Extract terminal escapes out of a line, returns a new line without terminal
@@ -173,8 +173,8 @@ type escapeItem struct {
 //
 // Required: The line shall not contain "\n"
 //
-func extractTermEscapes(line string) (string, []escapeItem) {
-	var termEscapes []escapeItem
+func ExtractTermEscapes(line string) (string, []EscapeItem) {
+	var termEscapes []EscapeItem
 	var line1 string
 
 	pos := 0
@@ -191,7 +191,7 @@ func extractTermEscapes(line string) (string, []escapeItem) {
 		if inEscape {
 			item += string(r)
 			if r == 'm' {
-				termEscapes = append(termEscapes, escapeItem{item, pos - occupiedRuneCount})
+				termEscapes = append(termEscapes, EscapeItem{item, pos - occupiedRuneCount})
 				occupiedRuneCount += utf8.RuneCountInString(item)
 				inEscape = false
 			}
@@ -206,7 +206,7 @@ func extractTermEscapes(line string) (string, []escapeItem) {
 // Apply the extracted terminal escapes to the edited line. The only edit
 // allowed is to insert "\n" like that in softwrapLine. Callers shall ensure
 // this since this function is not able to check it.
-func applyTermEscapes(line string, escapes []escapeItem) string {
+func applyTermEscapes(line string, escapes []EscapeItem) string {
 	if len(escapes) == 0 {
 		return line
 	}
@@ -221,13 +221,13 @@ func applyTermEscapes(line string, escapes []escapeItem) string {
 			// pass the end of line, so that algorithms who trim right spaces are
 			// happy. But algorithms who trim left spaces are still unhappy.
 			out += "\n"
-			for currItem < len(escapes) && currPos == escapes[currItem].pos {
-				out += escapes[currItem].item
+			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+				out += escapes[currItem].Item
 				currItem++
 			}
 		} else {
-			for currItem < len(escapes) && currPos == escapes[currItem].pos {
-				out += escapes[currItem].item
+			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+				out += escapes[currItem].Item
 				currItem++
 			}
 			out += string(r)
@@ -236,8 +236,8 @@ func applyTermEscapes(line string, escapes []escapeItem) string {
 	}
 
 	// Don't forget the trailing escapes, if any.
-	for currItem < len(escapes) && currPos == escapes[currItem].pos {
-		out += escapes[currItem].item
+	for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+		out += escapes[currItem].Item
 		currItem++
 	}
 
@@ -376,4 +376,20 @@ func splitWord(word string, length int) (string, string) {
 	leftover := runes[len(result):]
 
 	return string(result), string(leftover)
+}
+
+// MaxLineLen return the length of the longest line, while ignoring the terminal escape sequences
+func MaxLineLen(text string) int {
+	lines := strings.Split(text, "\n")
+
+	max := 0
+
+	for _, line := range lines {
+		length := WordLen(line)
+		if length > max {
+			max = length
+		}
+	}
+
+	return max
 }
