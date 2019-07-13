@@ -7,8 +7,6 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// TODO: this code would benefits a lot from using strings.Builder or similar
-
 // Force runewidth not to treat ambiguous runes as wide chars, so that things
 // like unicode ellipsis/up/down/left/right glyphs can have correct runewidth
 // and can be displayed correctly in terminals.
@@ -121,19 +119,19 @@ func softwrapLine(line string, textWidth int) string {
 	for i, j := 0, len(chunks)-1; i < j; i, j = i+1, j-1 {
 		chunks[i], chunks[j] = chunks[j], chunks[i]
 	}
-	var line2 string = ""
-	var width int = 0
+	var line2 strings.Builder
+	width := 0
 	for len(chunks) > 0 {
 		thisWord := chunks[len(chunks)-1]
 		wl := WordLen(thisWord)
 		if width+wl <= textWidth {
-			line2 += chunks[len(chunks)-1]
+			line2.WriteString(chunks[len(chunks)-1])
 			chunks = chunks[:len(chunks)-1]
 			width += wl
 			if width == textWidth && len(chunks) > 0 {
 				// NOTE: new line begins when current line is full and there are more
 				// chunks to come.
-				line2 += "\n"
+				line2.WriteRune('\n')
 				width = 0
 			}
 		} else if wl > textWidth {
@@ -141,20 +139,21 @@ func softwrapLine(line string, textWidth int) string {
 			// But if the long words is the first non-space word in the middle of the
 			// line, preceeding spaces shall not be counted in word spliting.
 			splitWidth := textWidth - width
-			if strings.HasSuffix(line2, "\n"+strings.Repeat(" ", width)) {
+			if strings.HasSuffix(line2.String(), "\n"+strings.Repeat(" ", width)) {
 				splitWidth += width
 			}
 			left, right := splitWord(chunks[len(chunks)-1], splitWidth)
 			chunks[len(chunks)-1] = right
-			line2 += left + "\n"
+			line2.WriteString(left)
+			line2.WriteRune('\n')
 			width = 0
 		} else {
-			line2 += "\n"
+			line2.WriteRune('\n')
 			width = 0
 		}
 	}
 
-	line3 := applyTermEscapes(line2, termEscapes)
+	line3 := applyTermEscapes(line2.String(), termEscapes)
 	return line3
 }
 
@@ -175,7 +174,7 @@ type EscapeItem struct {
 //
 func ExtractTermEscapes(line string) (string, []EscapeItem) {
 	var termEscapes []EscapeItem
-	var line1 string
+	var line1 strings.Builder
 
 	pos := 0
 	item := ""
@@ -197,10 +196,10 @@ func ExtractTermEscapes(line string) (string, []EscapeItem) {
 			}
 			continue
 		}
-		line1 += string(r)
+		line1.WriteRune(r)
 	}
 
-	return line1, termEscapes
+	return line1.String(), termEscapes
 }
 
 // Apply the extracted terminal escapes to the edited line. The only edit
@@ -211,7 +210,7 @@ func applyTermEscapes(line string, escapes []EscapeItem) string {
 		return line
 	}
 
-	var out string = ""
+	var out strings.Builder
 
 	currPos := 0
 	currItem := 0
@@ -220,28 +219,28 @@ func applyTermEscapes(line string, escapes []EscapeItem) string {
 			// NOTE: We avoid terminal escapes at the end of a line by move them one
 			// pass the end of line, so that algorithms who trim right spaces are
 			// happy. But algorithms who trim left spaces are still unhappy.
-			out += "\n"
+			out.WriteString("\n")
 			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-				out += escapes[currItem].Item
+				out.WriteString(escapes[currItem].Item)
 				currItem++
 			}
 		} else {
 			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-				out += escapes[currItem].Item
+				out.WriteString(escapes[currItem].Item)
 				currItem++
 			}
-			out += string(r)
+			out.WriteRune(r)
 			currPos++
 		}
 	}
 
 	// Don't forget the trailing escapes, if any.
 	for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-		out += escapes[currItem].Item
+		out.WriteString(escapes[currItem].Item)
 		currItem++
 	}
 
-	return out
+	return out.String()
 }
 
 // Segment a line into chunks, where each chunk consists of chars with the same

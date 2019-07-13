@@ -449,6 +449,24 @@ func TestExtractApplyTermEscapes(t *testing.T) {
 	}
 }
 
+func BenchmarkExtractTermEscapes(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		ExtractTermEscapes("\x1b[1m\x1b[31mThis \x1b[1m\x1b[31mis an\x1b[0m example.\x1b[1m\x1b[31m")
+	}
+}
+
+func BenchmarkApplyTermEscapes(b *testing.B) {
+	cleaned, escapes := ExtractTermEscapes("\x1b[1m\x1b[31mThis \x1b[1m\x1b[31mis an\x1b[0m example.\x1b[1m\x1b[31m")
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		applyTermEscapes(cleaned, escapes)
+	}
+}
+
 func TestSegmentLines(t *testing.T) {
 	cases := []struct {
 		Input  string
