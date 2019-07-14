@@ -1,0 +1,8 @@
+module go-term-text
+
+go 1.12
+
+require (
+	github.com/mattn/go-runewidth v0.0.4
+	github.com/stretchr/testify v1.3.0
+)
