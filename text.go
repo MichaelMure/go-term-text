@@ -2,6 +2,7 @@ package text
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -109,52 +110,96 @@ func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (s
 // the textWidth are broken into pieces no longer than textWidth.
 //
 func softwrapLine(line string, textWidth int) string {
-	// NOTE: terminal escapes are stripped out of the line so the algorithm is
-	// simpler. Do not try to mix them in the wrapping algorithm, as it can get
-	// complicated quickly.
-	line1, termEscapes := ExtractTermEscapes(line)
+	escaped, escapes := ExtractTermEscapes(line)
 
-	chunks := segmentLine(line1)
+	chunks := segmentLine(escaped)
 	// Reverse the chunk array so we can use it as a stack.
 	for i, j := 0, len(chunks)-1; i < j; i, j = i+1, j-1 {
 		chunks[i], chunks[j] = chunks[j], chunks[i]
 	}
-	var line2 strings.Builder
+
+	// for readability, minimal implementation of a stack:
+
+	pop := func() string {
+		result := chunks[len(chunks)-1]
+		chunks = chunks[:len(chunks)-1]
+		return result
+	}
+
+	push := func(chunk string) {
+		chunks = append(chunks, chunk)
+	}
+
+	peek := func() string {
+		return chunks[len(chunks)-1]
+	}
+
+	empty := func() bool {
+		return len(chunks) == 0
+	}
+
+	var out strings.Builder
+
+	// helper to write in the output while interleaving the escape
+	// sequence at the correct places.
+	// note: the final algorithm will add additional line break in the original
+	// text. Those line break are *not* fed to this helper so the positions don't
+	// need to be offset, which make the whole thing much easier.
+	currPos := 0
+	currItem := 0
+	outputString := func(s string) {
+		for _, r := range s {
+			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+				out.WriteString(escapes[currItem].Item)
+				currItem++
+			}
+			out.WriteRune(r)
+			currPos++
+		}
+	}
+
 	width := 0
-	for len(chunks) > 0 {
-		thisWord := chunks[len(chunks)-1]
-		wl := WordLen(thisWord)
+
+	for !empty() {
+		wl := WordLen(peek())
+
 		if width+wl <= textWidth {
-			line2.WriteString(chunks[len(chunks)-1])
-			chunks = chunks[:len(chunks)-1]
+			// the chunk fit in the available space
+			outputString(pop())
 			width += wl
-			if width == textWidth && len(chunks) > 0 {
-				// NOTE: new line begins when current line is full and there are more
-				// chunks to come.
-				line2.WriteRune('\n')
+			if width == textWidth && !empty() {
+				// only add line break when there is more chunk to come
+				out.WriteRune('\n')
 				width = 0
 			}
 		} else if wl > textWidth {
-			// NOTE: By default, long words are splited to fill the remaining space.
+			// words too long for a full line are split to fill the remaining space.
 			// But if the long words is the first non-space word in the middle of the
-			// line, preceeding spaces shall not be counted in word spliting.
+			// line, preceding spaces shall not be counted in word splitting.
 			splitWidth := textWidth - width
-			if strings.HasSuffix(line2.String(), "\n"+strings.Repeat(" ", width)) {
+			if strings.HasSuffix(out.String(), "\n"+strings.Repeat(" ", width)) {
 				splitWidth += width
 			}
-			left, right := splitWord(chunks[len(chunks)-1], splitWidth)
-			chunks[len(chunks)-1] = right
-			line2.WriteString(left)
-			line2.WriteRune('\n')
+			left, right := splitWord(pop(), splitWidth)
+			// remainder is pushed back to the stack for next round
+			push(right)
+			outputString(left)
+			out.WriteRune('\n')
 			width = 0
 		} else {
-			line2.WriteRune('\n')
+			// normal line overflow, we add a line break and try again
+			out.WriteRune('\n')
 			width = 0
 		}
 	}
 
-	line3 := applyTermEscapes(line2.String(), termEscapes)
-	return line3
+	// Don't forget the trailing escapes, if any.
+	for currItem < len(escapes) && currPos >= escapes[currItem].Pos {
+		out.WriteString(escapes[currItem].Item)
+		currItem++
+	}
+
+	return out.String()
 }
 
 // EscapeItem: Storage of terminal escapes in a line. 'item' is the actural
@@ -205,7 +250,7 @@ func ExtractTermEscapes(line string) (string, []EscapeItem) {
 // Apply the extracted terminal escapes to the edited line. The only edit
 // allowed is to insert "\n" like that in softwrapLine. Callers shall ensure
 // this since this function is not able to check it.
-func applyTermEscapes(line string, escapes []EscapeItem) string {
+func ApplyTermEscapes(line string, escapes []EscapeItem) string {
 	if len(escapes) == 0 {
 		return line
 	}
@@ -215,27 +260,16 @@ func applyTermEscapes(line string, escapes []EscapeItem) string {
 	currPos := 0
 	currItem := 0
 	for _, r := range line {
-		if r == '\n' {
-			// NOTE: We avoid terminal escapes at the end of a line by move them one
-			// pass the end of line, so that algorithms who trim right spaces are
-			// happy. But algorithms who trim left spaces are still unhappy.
-			out.WriteString("\n")
-			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-				out.WriteString(escapes[currItem].Item)
-				currItem++
-			}
-		} else {
-			for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-				out.WriteString(escapes[currItem].Item)
-				currItem++
-			}
-			out.WriteRune(r)
-			currPos++
+		for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+			out.WriteString(escapes[currItem].Item)
+			currItem++
 		}
+		out.WriteRune(r)
+		currPos++
 	}
 
 	// Don't forget the trailing escapes, if any.
-	for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+	for currItem < len(escapes) && currPos >= escapes[currItem].Pos {
 		out.WriteString(escapes[currItem].Item)
 		currItem++
 	}

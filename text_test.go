@@ -442,7 +442,7 @@ func TestExtractApplyTermEscapes(t *testing.T) {
 			assert.Equal(t, tc.Output, cleaned)
 			assert.Equal(t, tc.TermEscapes, escapes)
 
-			augmented := applyTermEscapes(cleaned, escapes)
+			augmented := ApplyTermEscapes(cleaned, escapes)
 
 			assert.Equal(t, tc.Input, augmented)
 		})
@@ -463,7 +463,7 @@ func BenchmarkApplyTermEscapes(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		applyTermEscapes(cleaned, escapes)
+		ApplyTermEscapes(cleaned, escapes)
 	}
 }
 
