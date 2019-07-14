@@ -21,22 +21,22 @@ func Wrap(text string, lineWidth int) (string, int) {
 	return WrapLeftPadded(text, lineWidth, 0)
 }
 
-// Wrap a text for an exact line size with a left padding of spaces
+// WrapLeftPadded wrap a text for an exact line size with a left padding of spaces
 // Handle properly terminal color escape code
 func WrapLeftPadded(text string, lineWidth int, leftPad int) (string, int) {
 	pad := strings.Repeat(" ", leftPad)
 	return WrapWithPad(text, lineWidth, pad)
 }
 
-// Wrap a text for an exact line size with a custom left padding
+// WrapWithPad wrap a text for an exact line size with a custom left padding
 // Handle properly terminal color escape code
 func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
 	return WrapWithPadIndent(text, lineWidth, pad, pad)
 }
 
-// Wrap a text for an exact line size with a custom left padding and a first line
-// indent. The padding is not effective on the first line, indent is used instead,
-// which allow to implement indents and outdents.
+// WrapWithPadIndent wrap a text for an exact line size with a custom left padding
+// and a first line indent. The padding is not effective on the first line, indent
+// is used instead, which allow to implement indents and outdents.
 // Handle properly terminal color escape code
 func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (string, int) {
 	var lines []string
@@ -108,7 +108,6 @@ func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (s
 // breaks ("\n") are inserted between these groups so that the total length
 // between breaks does not exceed the required width. Words that are longer than
 // the textWidth are broken into pieces no longer than textWidth.
-//
 func softwrapLine(line string, textWidth int) string {
 	escaped, escapes := ExtractTermEscapes(line)
 
@@ -202,21 +201,21 @@ func softwrapLine(line string, textWidth int) string {
 	return out.String()
 }
 
-// EscapeItem: Storage of terminal escapes in a line. 'item' is the actural
-// escape command, and 'pos' is the index in the rune array where the 'item'
-// shall be inserted back. For example, the escape item in "F\x1b33mox" is
-// {"\x1b33m", 1}.
+// EscapeItem hold the description of terminal escapes in a line.
+// 'item' is the actual escape command
+// 'pos' is the index in the rune array where the 'item' shall be inserted back.
+// For example, the escape item in "F\x1b33mox" is {"\x1b33m", 1}.
 type EscapeItem struct {
 	Item string
 	Pos  int
 }
 
-// Extract terminal escapes out of a line, returns a new line without terminal
-// escapes and a slice of escape items. The terminal escapes can be inserted
-// back into the new line at rune index 'item.pos' to recover the original line.
+// ExtractTermEscapes extract terminal escapes out of a line and returns a new
+// line without terminal escapes and a slice of escape items. The terminal escapes
+// can be inserted back into the new line at rune index 'item.pos' to recover the
+// original line.
 //
 // Required: The line shall not contain "\n"
-//
 func ExtractTermEscapes(line string) (string, []EscapeItem) {
 	var termEscapes []EscapeItem
 	var line1 strings.Builder
@@ -247,9 +246,9 @@ func ExtractTermEscapes(line string) (string, []EscapeItem) {
 	return line1.String(), termEscapes
 }
 
-// Apply the extracted terminal escapes to the edited line. The only edit
-// allowed is to insert "\n" like that in softwrapLine. Callers shall ensure
-// this since this function is not able to check it.
+// ApplyTermEscapes apply the extracted terminal escapes to the edited line.
+// The only edit allowed is to insert "\n" like that in softwrapLine.
+// Callers shall ensure this since this function is not able to check it.
 func ApplyTermEscapes(line string, escapes []EscapeItem) string {
 	if len(escapes) == 0 {
 		return line
@@ -323,7 +322,6 @@ func segmentLine(s string) []string {
 //
 // These categories are so defined that each category forms a non-breakable
 // chunk. It IS NOT the same as unicode code point categories.
-//
 const (
 	none int = iota
 	wideChar
