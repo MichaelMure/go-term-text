@@ -426,3 +426,18 @@ func MaxLineLen(text string) int {
 
 	return max
 }
+
+// LineAlignRight align the given line on the right and apply the needed left
+// padding to match the given lineWidth, while ignoring the terminal escape sequences.
+// If the given lineWidth is too small to fit the given line, it's returned as is.
+func LineAlignRight(line string, lineWidth int) string {
+	cleaned, escapes := ExtractTermEscapes(line)
+	trimmed := strings.TrimRightFunc(cleaned, unicode.IsSpace)
+	recomposed := ApplyTermEscapes(trimmed, escapes)
+	padLen := lineWidth - WordLen(trimmed)
+	if padLen < 0 {
+		padLen = 0
+	}
+	pad := strings.Repeat(" ", padLen)
+	return pad + recomposed
+}

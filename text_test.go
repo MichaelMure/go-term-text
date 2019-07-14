@@ -116,6 +116,12 @@ func TestWrap(t *testing.T) {
 			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
 			12,
 		},
+		// Handle mixed wide and short characters with color at both ends
+		{
+			"\x1b31m敏捷 A quick 的狐狸 fox 跳过 jumps over a lazy 了一只懒狗 dog。\x1b0m",
+			"\x1b31m敏捷 A quick\n的狐狸 fox\n跳过 jumps\nover a lazy\n了一只懒狗\ndog。\x1b0m",
+			12,
+		},
 	}
 
 	for i, tc := range cases {
@@ -527,5 +533,42 @@ func TestMaxLineLen(t *testing.T) {
 	}
 	for _, tc := range cases {
 		assert.Equal(t, tc.length, MaxLineLen(tc.text))
+	}
+}
+
+func TestLineAlignRight(t *testing.T) {
+	cases := []struct {
+		line   string
+		width  int
+		output string
+	}{
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			70,
+			"     The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// width too low return the same input
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			10,
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// respect escape sequences and wide chars
+		{
+			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+			60,
+			"  敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+		},
+	}
+	for _, tc := range cases {
+		out := LineAlignRight(tc.line, tc.width)
+		assert.Equal(t, tc.output, out)
+	}
+}
+
+func BenchmarkLineAlignRight(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		LineAlignRight("敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。", 60)
 	}
 }
