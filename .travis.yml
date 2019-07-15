@@ -10,4 +10,7 @@ env:
 
 script:
   - go build
-  - go test -v -bench=. ./...
+  - go test -v -bench=. -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
