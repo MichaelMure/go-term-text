@@ -1,4 +1,4 @@
-module go-term-text
+module github.com/MichaelMure/go-term-text
 
 go 1.12
 
