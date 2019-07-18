@@ -31,8 +31,8 @@ func main() {
     		" text to examine or demonstrate the \x1b[9mvisual effects\x1b[0m of " +
     		"various graphic design. 一只 A Quick \x1b[31m敏捷的狐 Fox " +
     		"狸跳过了\x1b[0mDog一只懒狗。"
-    
-    output, n := text.WrapWithPadIndent(input, 60,
+
+	output, n := text.WrapWithPadIndent(input, 60,
     		"\x1b[34m<-indent-> \x1b[0m", "\x1b[33m<-pad-> \x1b[0m")
 
 	fmt.Printf("output has %d lines\n\n", n)
