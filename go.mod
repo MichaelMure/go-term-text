@@ -1,6 +1,6 @@
 module github.com/MichaelMure/go-term-text
 
-go 1.12
+go 1.10
 
 require (
 	github.com/mattn/go-runewidth v0.0.4
