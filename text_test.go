@@ -46,7 +46,7 @@ func TestWrap(t *testing.T) {
 		// A tab counts as 4 characters.
 		{
 			"foo\nb\t r\n baz",
-			"foo\nb\nr\n baz",
+			"foo\nb\nr\nbaz",
 			4,
 		},
 		// Trailing whitespace is removed after used for wrapping.
@@ -89,7 +89,7 @@ func TestWrap(t *testing.T) {
 		// Complete example:
 		{
 			" This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* baz  \nBAM    ",
-			" This\nis a\nlist:\n\n    *\nfoo\n    *\nbar\n\n\n    *\nbaz\nBAM\n",
+			"This\nis a\nlist:\n\n*\nfoo\n*\nbar\n\n\n*\nbaz\nBAM\n",
 			6,
 		},
 		// Handle chinese (wide characters)
@@ -265,6 +265,72 @@ func BenchmarkWrapWithPadIndent(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		WrapWithPadIndent("The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.", 59, "  ", "      ")
+	}
+}
+
+func TestWrapWithPadIndentAlign(t *testing.T) {
+	cases := []struct {
+		input, output string
+		lim           int
+		indent, pad   string
+		align         Alignment
+	}{
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.",
+			`<indent>     The Lorem ipsum text is typically composed of
+<pad>  pseudo-Latin words. It is commonly used as placeholder
+<pad>   text to examine or demonstrate the visual effects of
+<pad>                 various graphic design.`,
+			63, "<indent>", "<pad>",
+			AlignCenter,
+		},
+		// Handle Chinese
+		{
+			"婞一枳郲逴靲屮蜧曀殳，掫乇峔掮傎溒兀緉冘仜。郼牪艽螗媷錵朸一詅掜豗怙刉笀丌，楀棶乇矹迡搦囷圣亍昄漚粁仈祂。覂一洳袶揙楱亍滻瘯毌，掗屮柅軡菵腩乜榵毌夯。勼哻怌婇怤灟葠雺奷朾恦扰衪岨坋誁乇芚誙腞。冇笉妺悆浂鱦賌廌灱灱觓坋佫呬耴跣兀枔蓔輈。嵅咍犴膰痭瘰机一靬涽捊矷尒玶乇，煚塈丌岰陊鉖怞戉兀甿跾觓夬侄。棩岧汌橩僁螗玎一逭舴圂衪扐衲兀，嵲媕亍衩衿溽昃夯丌侄蒰扂丱呤。毰侘妅錣廇螉仴一暀淖蚗佶庂咺丌，輀鈁乇彽洢溦洰氶乇构碨洐巿阹。",
+			`<indent> 婞一枳郲逴靲屮蜧曀殳，掫乇峔掮傎溒兀緉冘仜。郼牪艽
+<pad>螗媷錵朸一詅掜豗怙刉笀丌，楀棶乇矹迡搦囷圣亍昄漚粁仈祂
+<pad>。覂一洳袶揙楱亍滻瘯毌，掗屮柅軡菵腩乜榵毌夯。勼哻怌婇
+<pad>怤灟葠雺奷朾恦扰衪岨坋誁乇芚誙腞。冇笉妺悆浂鱦賌廌灱灱
+<pad>觓坋佫呬耴跣兀枔蓔輈。嵅咍犴膰痭瘰机一靬涽捊矷尒玶乇，
+<pad>煚塈丌岰陊鉖怞戉兀甿跾觓夬侄。棩岧汌橩僁螗玎一逭舴圂衪
+<pad>扐衲兀，嵲媕亍衩衿溽昃夯丌侄蒰扂丱呤。毰侘妅錣廇螉仴一
+<pad>        暀淖蚗佶庂咺丌，輀鈁乇彽洢溦洰氶乇构碨洐巿阹。`,
+			59, "<indent>", "<pad>",
+			AlignRight,
+		},
+		// Handle long unbreakable words in a full sentence
+		{
+			"OT: there are alternatives to maintainer-/user-set priority, e.g. \"[user pain](http://www.lostgarden.com/2008/05/improving-bug-triage-with-user-pain.html)\".",
+			`<indent>        OT: there are alternatives to
+<pad>maintainer-/user-set priority, e.g. "[user pain](
+<pad>http://www.lostgarden.com/2008/05/improving-bug-t
+<pad>          riage-with-user-pain.html)".`,
+			54, "<indent>", "<pad>",
+			AlignCenter,
+		},
+	}
+
+	for i, tc := range cases {
+		actual, lines := WrapWithPadIndentAlign(tc.input, tc.lim, tc.indent, tc.pad, tc.align)
+		if actual != tc.output {
+			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n`\n%s`\n\nActual Output:\n`\n%s\n%s`",
+				i, tc.input, tc.output,
+				"|"+strings.Repeat("-", tc.lim-2)+"|",
+				actual)
+		}
+
+		expected := len(strings.Split(tc.output, "\n"))
+		if expected != lines {
+			t.Fatalf("Case %d Nb lines mismatch\nExpected:%d\nActual:%d",
+				i, expected, lines)
+		}
+	}
+}
+
+func BenchmarkWrapWithPadIndentAlign(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		WrapWithPadIndentAlign("The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.", 59, "  ", "      ", AlignCenter)
 	}
 }
 
@@ -536,6 +602,80 @@ func TestMaxLineLen(t *testing.T) {
 	}
 }
 
+func TestLineAlignLeft(t *testing.T) {
+	cases := []struct {
+		line   string
+		width  int
+		output string
+	}{
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			70,
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// width too low return the same input
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			10,
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// respect escape sequences and wide chars
+		{
+			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+			60,
+			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+		},
+	}
+	for _, tc := range cases {
+		out := LineAlignLeft(tc.line, tc.width)
+		assert.Equal(t, tc.output, out)
+	}
+}
+
+func BenchmarkLineAlignLeft(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		LineAlignLeft("敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。", 60)
+	}
+}
+
+func TestLineAlignCenter(t *testing.T) {
+	cases := []struct {
+		line   string
+		width  int
+		output string
+	}{
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			70,
+			"  The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// width too low return the same input
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			10,
+			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
+		},
+		// respect escape sequences and wide chars
+		{
+			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+			60,
+			" 敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+		},
+	}
+	for _, tc := range cases {
+		out := LineAlignCenter(tc.line, tc.width)
+		assert.Equal(t, tc.output, out)
+	}
+}
+
+func BenchmarkLineAlignCenter(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		LineAlignCenter("敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。", 60)
+	}
+}
+
 func TestLineAlignRight(t *testing.T) {
 	cases := []struct {
 		line   string
@@ -570,43 +710,6 @@ func BenchmarkLineAlignRight(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		LineAlignRight("敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。", 60)
-	}
-}
-
-func TestLineAlignCenter(t *testing.T) {
-	cases := []struct {
-		line   string
-		width  int
-		output string
-	}{
-		{
-			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
-			70,
-			"  The Lorem ipsum text is typically composed of pseudo-Latin words.   ",
-		},
-		// width too low return the same input
-		{
-			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
-			10,
-			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
-		},
-		// respect escape sequences and wide chars
-		{
-			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
-			60,
-			" 敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。 ",
-		},
-	}
-	for _, tc := range cases {
-		out := LineAlignCenter(tc.line, tc.width)
-		assert.Equal(t, tc.output, out)
-	}
-}
-
-func BenchmarkLineAlignCenter(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		LineAlignCenter("敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。", 60)
 	}
 }
 

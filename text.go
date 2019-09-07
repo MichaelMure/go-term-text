@@ -15,30 +15,47 @@ func init() {
 	runewidth.DefaultCondition.EastAsianWidth = false
 }
 
-// Wrap a text for an exact line size
+type Alignment int
+
+const (
+	AlignLeft Alignment = iota
+	AlignCenter
+	AlignRight
+)
+
+// Wrap a text for a given line size.
 // Handle properly terminal color escape code
 func Wrap(text string, lineWidth int) (string, int) {
 	return WrapLeftPadded(text, lineWidth, 0)
 }
 
-// WrapLeftPadded wrap a text for an exact line size with a left padding of spaces
+// WrapLeftPadded wrap a text for a given line size with a left padding.
 // Handle properly terminal color escape code
 func WrapLeftPadded(text string, lineWidth int, leftPad int) (string, int) {
 	pad := strings.Repeat(" ", leftPad)
 	return WrapWithPad(text, lineWidth, pad)
 }
 
-// WrapWithPad wrap a text for an exact line size with a custom left padding
+// WrapWithPad wrap a text for a given line size with a custom left padding
 // Handle properly terminal color escape code
 func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
 	return WrapWithPadIndent(text, lineWidth, pad, pad)
 }
 
-// WrapWithPadIndent wrap a text for an exact line size with a custom left padding
+// WrapWithPadIndent wrap a text for a given line size with a custom left padding
 // and a first line indent. The padding is not effective on the first line, indent
 // is used instead, which allow to implement indents and outdents.
 // Handle properly terminal color escape code
 func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (string, int) {
+	return WrapWithPadIndentAlign(text, lineWidth, indent, pad, AlignLeft)
+}
+
+// WrapWithPadIndentAlign wrap a text for a given line size with a custom left padding
+// and a first line indent. The padding is not effective on the first line, indent
+// is used instead, which allow to implement indents and outdents.
+// This function also align the result depending on the requested alignment.
+// Handle properly terminal color escape code
+func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad string, align Alignment) (string, int) {
 	var lines []string
 	nbLine := 0
 
@@ -59,7 +76,8 @@ func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (s
 
 		if line == "" || strings.TrimSpace(line) == "" {
 			// nothing in the line, we just add the non-empty part of the padding
-			lines = append(lines, strings.TrimRight(padStr, " "))
+			content := LineAlign(strings.TrimRight(padStr, " "), lineWidth-padLen, align)
+			lines = append(lines, content)
 			nbLine++
 			continue
 		}
@@ -73,7 +91,8 @@ func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (s
 			// use the first wrapped line, ignore everything else and
 			// wrap the remaining of the line with the normal padding.
 
-			lines = append(lines, padStr+strings.TrimRight(split[0], " "))
+			content := LineAlign(strings.TrimRight(split[0], " "), lineWidth-padLen, align)
+			lines = append(lines, padStr+content)
 			nbLine++
 			line = strings.TrimPrefix(line, split[0])
 			line = strings.TrimLeft(line, " ")
@@ -87,13 +106,16 @@ func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (s
 		for j, seg := range split {
 			if j == 0 {
 				// keep the left padding of the wrapped line
-				lines = append(lines, padStr+strings.TrimRight(seg, " "))
+				content := LineAlign(strings.TrimRight(seg, " "), lineWidth-padLen, align)
+				lines = append(lines, padStr+content)
 			} else {
-				lines = append(lines, padStr+strings.TrimSpace(seg))
+				content := LineAlign(strings.TrimSpace(seg), lineWidth-padLen, align)
+				lines = append(lines, padStr+content)
 			}
 			nbLine++
 		}
 	}
+
 	return strings.Join(lines, "\n"), nbLine
 }
 
@@ -425,6 +447,48 @@ func MaxLineLen(text string) int {
 	return max
 }
 
+// LineAlign align the given line as asked and apply the needed padding to match the given
+// lineWidth, while ignoring the terminal escape sequences.
+// If the given lineWidth is too small to fit the given line, it's returned without
+// padding, overflowing lineWidth.
+func LineAlign(line string, lineWidth int, align Alignment) string {
+	switch align{
+	case AlignLeft:
+		return LineAlignLeft(line, lineWidth)
+	case AlignCenter:
+		return LineAlignCenter(line, lineWidth)
+	case AlignRight:
+		return LineAlignRight(line, lineWidth)
+	}
+	panic("unknown alignment")
+}
+
+// LineAlignLeft align the given line on the left while ignoring the terminal escape sequences.
+// If the given lineWidth is too small to fit the given line, it's returned without
+// padding, overflowing lineWidth.
+func LineAlignLeft(line string, lineWidth int) string {
+	cleaned, escapes := ExtractTermEscapes(line)
+	trimmed := strings.TrimLeftFunc(cleaned, unicode.IsSpace)
+	recomposed := ApplyTermEscapes(trimmed, escapes)
+	return recomposed
+}
+
+// LineAlignCenter align the given line on the center and apply the needed left
+// padding, while ignoring the terminal escape sequences.
+// If the given lineWidth is too small to fit the given line, it's returned without
+// padding, overflowing lineWidth.
+func LineAlignCenter(line string, lineWidth int) string {
+	cleaned, escapes := ExtractTermEscapes(line)
+	trimmed := strings.TrimFunc(cleaned, unicode.IsSpace)
+	recomposed := ApplyTermEscapes(trimmed, escapes)
+	totalPadLen := lineWidth - WordLen(trimmed)
+	if totalPadLen < 0 {
+		totalPadLen = 0
+	}
+	pad := strings.Repeat(" ", totalPadLen/2)
+	return pad + recomposed
+}
+
 // LineAlignRight align the given line on the right and apply the needed left
 // padding to match the given lineWidth, while ignoring the terminal escape sequences.
 // If the given lineWidth is too small to fit the given line, it's returned without
@@ -439,23 +503,6 @@ func LineAlignRight(line string, lineWidth int) string {
 	}
 	pad := strings.Repeat(" ", padLen)
 	return pad + recomposed
-}
-
-// LineAlignCenter align the given line on the center and apply the needed left/right
-// padding to match the given lineWidth, while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned without
-// padding, overflowing lineWidth.
-func LineAlignCenter(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	totalPadLen := lineWidth - WordLen(trimmed)
-	if totalPadLen < 0 {
-		totalPadLen = 0
-	}
-	padLeft := strings.Repeat(" ", totalPadLen/2)
-	padRight := strings.Repeat(" ", totalPadLen-(totalPadLen/2))
-	return padLeft + recomposed + padRight
 }
 
 // TrimSpace remove the leading and trailing whitespace while ignoring the
