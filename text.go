@@ -427,7 +427,8 @@ func MaxLineLen(text string) int {
 
 // LineAlignRight align the given line on the right and apply the needed left
 // padding to match the given lineWidth, while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned as is.
+// If the given lineWidth is too small to fit the given line, it's returned without
+// padding, overflowing lineWidth.
 func LineAlignRight(line string, lineWidth int) string {
 	cleaned, escapes := ExtractTermEscapes(line)
 	trimmed := strings.TrimRightFunc(cleaned, unicode.IsSpace)
@@ -438,6 +439,23 @@ func LineAlignRight(line string, lineWidth int) string {
 	}
 	pad := strings.Repeat(" ", padLen)
 	return pad + recomposed
+}
+
+// LineAlignCenter align the given line on the center and apply the needed left/right
+// padding to match the given lineWidth, while ignoring the terminal escape sequences.
+// If the given lineWidth is too small to fit the given line, it's returned without
+// padding, overflowing lineWidth.
+func LineAlignCenter(line string, lineWidth int) string {
+	cleaned, escapes := ExtractTermEscapes(line)
+	trimmed := strings.TrimFunc(cleaned, unicode.IsSpace)
+	recomposed := ApplyTermEscapes(trimmed, escapes)
+	totalPadLen := lineWidth - WordLen(trimmed)
+	if totalPadLen < 0 {
+		totalPadLen = 0
+	}
+	padLeft := strings.Repeat(" ", totalPadLen/2)
+	padRight := strings.Repeat(" ", totalPadLen-(totalPadLen/2))
+	return padLeft + recomposed + padRight
 }
 
 // TrimSpace remove the leading and trailing whitespace while ignoring the
