@@ -18,7 +18,8 @@ func init() {
 type Alignment int
 
 const (
-	AlignLeft Alignment = iota
+	NoAlign Alignment = iota
+	AlignLeft
 	AlignCenter
 	AlignRight
 )
@@ -42,12 +43,19 @@ func WrapWithPad(text string, lineWidth int, pad string) (string, int) {
 	return WrapWithPadIndent(text, lineWidth, pad, pad)
 }
 
+// WrapWithPad wrap a text for a given line size with a custom left padding
+// This function also align the result depending on the requested alignment.
+// Handle properly terminal color escape code
+func WrapWithPadAlign(text string, lineWidth int, pad string, align Alignment) (string, int) {
+	return WrapWithPadIndentAlign(text, lineWidth, pad, pad, align)
+}
+
 // WrapWithPadIndent wrap a text for a given line size with a custom left padding
 // and a first line indent. The padding is not effective on the first line, indent
 // is used instead, which allow to implement indents and outdents.
 // Handle properly terminal color escape code
 func WrapWithPadIndent(text string, lineWidth int, indent string, pad string) (string, int) {
-	return WrapWithPadIndentAlign(text, lineWidth, indent, pad, AlignLeft)
+	return WrapWithPadIndentAlign(text, lineWidth, indent, pad, NoAlign)
 }
 
 // WrapWithPadIndentAlign wrap a text for a given line size with a custom left padding
@@ -76,8 +84,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 
 		if line == "" || strings.TrimSpace(line) == "" {
 			// nothing in the line, we just add the non-empty part of the padding
-			content := LineAlign(strings.TrimRight(padStr, " "), lineWidth-padLen, align)
-			lines = append(lines, content)
+			lines = append(lines, strings.TrimRight(padStr, " "))
 			nbLine++
 			continue
 		}
@@ -453,6 +460,8 @@ func MaxLineLen(text string) int {
 // padding, overflowing lineWidth.
 func LineAlign(line string, lineWidth int, align Alignment) string {
 	switch align{
+	case NoAlign:
+		return line
 	case AlignLeft:
 		return LineAlignLeft(line, lineWidth)
 	case AlignCenter:

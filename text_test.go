@@ -46,7 +46,7 @@ func TestWrap(t *testing.T) {
 		// A tab counts as 4 characters.
 		{
 			"foo\nb\t r\n baz",
-			"foo\nb\nr\nbaz",
+			"foo\nb\nr\n baz",
 			4,
 		},
 		// Trailing whitespace is removed after used for wrapping.
@@ -89,7 +89,7 @@ func TestWrap(t *testing.T) {
 		// Complete example:
 		{
 			" This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* baz  \nBAM    ",
-			"This\nis a\nlist:\n\n*\nfoo\n*\nbar\n\n\n*\nbaz\nBAM\n",
+			" This\nis a\nlist:\n\n    *\nfoo\n    *\nbar\n\n\n    *\nbaz\nBAM\n",
 			6,
 		},
 		// Handle chinese (wide characters)
