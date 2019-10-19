@@ -51,8 +51,9 @@ func ExtractTermEscapes(line string) (string, []EscapeItem) {
 }
 
 // ApplyTermEscapes apply the extracted terminal escapes to the edited line.
-// The only edit allowed is to insert "\n" like that in softwrapLine.
-// Callers shall ensure this since this function is not able to check it.
+// Escape sequences need to be ordered by their position.
+// If the position is < 0, the escape is applied at the beginning of the line.
+// If the position is > len(line), the escape is applied at the end of the line.
 func ApplyTermEscapes(line string, escapes []EscapeItem) string {
 	if len(escapes) == 0 {
 		return line
@@ -63,7 +64,7 @@ func ApplyTermEscapes(line string, escapes []EscapeItem) string {
 	currPos := 0
 	currItem := 0
 	for _, r := range line {
-		for currItem < len(escapes) && currPos == escapes[currItem].Pos {
+		for currItem < len(escapes) && currPos >= escapes[currItem].Pos {
 			out.WriteString(escapes[currItem].Item)
 			currItem++
 		}
@@ -72,10 +73,23 @@ func ApplyTermEscapes(line string, escapes []EscapeItem) string {
 	}
 
 	// Don't forget the trailing escapes, if any.
-	for currItem < len(escapes) && currPos >= escapes[currItem].Pos {
+	for currItem < len(escapes) {
 		out.WriteString(escapes[currItem].Item)
 		currItem++
 	}
 
 	return out.String()
+}
+
+// OffsetEscapes is a utility function to offset the position of a
+// collection of EscapeItem.
+func OffsetEscapes(escapes []EscapeItem, offset int) []EscapeItem {
+	result := make([]EscapeItem, len(escapes))
+	for i, e := range escapes {
+		result[i] = EscapeItem{
+			Item: e.Item,
+			Pos:  e.Pos + offset,
+		}
+	}
+	return result
 }

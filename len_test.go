@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWordLen(t *testing.T) {
+func TestLen(t *testing.T) {
 	cases := []struct {
 		Input  string
 		Length int
@@ -47,7 +47,7 @@ func TestWordLen(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		l := WordLen(tc.Input)
+		l := Len(tc.Input)
 		if l != tc.Length {
 			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%d`\n\nActual Output:\n\n`%d`",
 				i, tc.Input, tc.Length, l)
@@ -55,10 +55,10 @@ func TestWordLen(t *testing.T) {
 	}
 }
 
-func BenchmarkWordLen(b *testing.B) {
+func BenchmarkLen(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		WordLen("快\x1b[31m檢什麼\x1b[0m望對")
+		Len("快\x1b[31m檢什麼\x1b[0m望對")
 	}
 }
 

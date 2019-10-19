@@ -58,7 +58,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 
 	// Start with the indent
 	padStr := indent
-	padLen := WordLen(indent)
+	padLen := Len(indent)
 
 	// tabs are formatted as 4 spaces
 	text = strings.Replace(text, "\t", "    ", -1)
@@ -68,7 +68,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 		// on the second line, use the padding instead
 		if i == 1 {
 			padStr = pad
-			padLen = WordLen(pad)
+			padLen = Len(pad)
 		}
 
 		if line == "" || strings.TrimSpace(line) == "" {
@@ -94,7 +94,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 			line = strings.TrimLeft(line, " ")
 
 			padStr = pad
-			padLen = WordLen(pad)
+			padLen = Len(pad)
 			wrapped = softwrapLine(line, lineWidth-padLen)
 			split = strings.Split(wrapped, "\n")
 		}
@@ -178,7 +178,7 @@ func softwrapLine(line string, textWidth int) string {
 	width := 0
 
 	for !empty() {
-		wl := WordLen(peek())
+		wl := Len(peek())
 
 		if width+wl <= textWidth {
 			// the chunk fit in the available space

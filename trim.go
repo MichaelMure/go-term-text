@@ -7,11 +7,12 @@ import (
 
 // TrimSpace remove the leading and trailing whitespace while ignoring the
 // terminal escape sequences.
-// Returns the trimmed
-func TrimSpace(line string) (result string, left int, right int) {
+// Returns the number of trimmed space on both side.
+func TrimSpace(line string) string {
 	cleaned, escapes := ExtractTermEscapes(line)
 
 	// trim left while counting
+	left := 0
 	trimmed := strings.TrimLeftFunc(cleaned, func(r rune) bool {
 		if unicode.IsSpace(r) {
 			left++
@@ -20,26 +21,8 @@ func TrimSpace(line string) (result string, left int, right int) {
 		return false
 	})
 
-	// trim right while counting
-	trimmed = strings.TrimRightFunc(trimmed, func(r rune) bool {
-		if unicode.IsSpace(r) {
-			right++
-			return true
-		}
-		return false
-	})
+	trimmed = strings.TrimRightFunc(trimmed, unicode.IsSpace)
 
-	// offset the escape sequences, bounded in the trimmed string space
-	for i, seq := range escapes {
-		if seq.Pos-left < 0 {
-			escapes[i].Pos = 0
-		} else if seq.Pos-left > len(trimmed) {
-			escapes[i].Pos = len(trimmed)
-		} else {
-			escapes[i].Pos = seq.Pos - left
-		}
-	}
-
-	result = ApplyTermEscapes(trimmed, escapes)
-	return
+	escapes = OffsetEscapes(escapes, -left)
+	return ApplyTermEscapes(trimmed, escapes)
 }

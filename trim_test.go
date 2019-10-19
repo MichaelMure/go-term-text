@@ -49,10 +49,8 @@ func TestTrimSpace(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		out, left, right := TrimSpace(tc.line)
+		out := TrimSpace(tc.line)
 		assert.Equal(t, tc.output, out)
-		assert.Equal(t, tc.left, left)
-		assert.Equal(t, tc.right, right)
 	}
 }
 

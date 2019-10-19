@@ -13,6 +13,11 @@ func TestLineAlignLeft(t *testing.T) {
 		output string
 	}{
 		{
+			"  foo foo bar",
+			30,
+			"foo foo bar",
+		},
+		{
 			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
 			70,
 			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
@@ -25,7 +30,7 @@ func TestLineAlignLeft(t *testing.T) {
 		},
 		// respect escape sequences and wide chars
 		{
-			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
+			"   敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
 			60,
 			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
 		},
@@ -51,8 +56,8 @@ func TestLineAlignCenter(t *testing.T) {
 	}{
 		{
 			"The Lorem ipsum text is typically composed of pseudo-Latin words.",
-			70,
-			"  The Lorem ipsum text is typically composed of pseudo-Latin words.",
+			75,
+			"     The Lorem ipsum text is typically composed of pseudo-Latin words.",
 		},
 		// width too low return the same input
 		{

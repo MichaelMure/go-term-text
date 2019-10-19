@@ -68,6 +68,35 @@ func TestExtractApplyTermEscapes(t *testing.T) {
 	}
 }
 
+func TestApplyTermEscapes(t *testing.T) {
+	cases := []struct {
+		Name        string
+		Input       string
+		Output      string
+		TermEscapes []EscapeItem
+	}{
+		{
+			"negative offset",
+			"This is an example.",
+			"\x1b[31mThis is an\x1b[0m example.",
+			[]EscapeItem{{"\x1b[31m", -5}, {"\x1b[0m", 10}},
+		},
+		{
+			"offset too far",
+			"This is an example.",
+			"This \x1b[31mis an example.\x1b[0m",
+			[]EscapeItem{{"\x1b[31m", 5}, {"\x1b[0m", 30}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			result := ApplyTermEscapes(tc.Input, tc.TermEscapes)
+			assert.Equal(t, tc.Output, result)
+		})
+	}
+}
+
 func BenchmarkExtractTermEscapes(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -83,5 +112,28 @@ func BenchmarkApplyTermEscapes(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		ApplyTermEscapes(cleaned, escapes)
+	}
+}
+
+func TestOffsetEscapes(t *testing.T) {
+	cases := []struct {
+		input  []EscapeItem
+		offset int
+		output []EscapeItem
+	}{
+		{
+			[]EscapeItem{{Pos: 0}, {Pos: 2}, {Pos: 20}},
+			5,
+			[]EscapeItem{{Pos: 5}, {Pos: 7}, {Pos: 25}},
+		},
+		{
+			[]EscapeItem{{Pos: 0}, {Pos: 2}, {Pos: 20}},
+			-5,
+			[]EscapeItem{{Pos: -5}, {Pos: -3}, {Pos: 15}},
+		},
+	}
+	for _, tc := range cases {
+		result := OffsetEscapes(tc.input, tc.offset)
+		assert.Equal(t, tc.output, result)
 	}
 }

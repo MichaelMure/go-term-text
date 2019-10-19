@@ -2,7 +2,6 @@ package text
 
 import (
 	"strings"
-	"unicode"
 )
 
 type Alignment int
@@ -36,10 +35,7 @@ func LineAlign(line string, lineWidth int, align Alignment) string {
 // If the given lineWidth is too small to fit the given line, it's returned without
 // padding, overflowing lineWidth.
 func LineAlignLeft(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimLeftFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	return recomposed
+	return TrimSpace(line)
 }
 
 // LineAlignCenter align the given line on the center and apply the needed left
@@ -47,15 +43,13 @@ func LineAlignLeft(line string, lineWidth int) string {
 // If the given lineWidth is too small to fit the given line, it's returned without
 // padding, overflowing lineWidth.
 func LineAlignCenter(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	totalPadLen := lineWidth - WordLen(trimmed)
+	trimmed := TrimSpace(line)
+	totalPadLen := lineWidth - Len(trimmed)
 	if totalPadLen < 0 {
 		totalPadLen = 0
 	}
 	pad := strings.Repeat(" ", totalPadLen/2)
-	return pad + recomposed
+	return pad + trimmed
 }
 
 // LineAlignRight align the given line on the right and apply the needed left
@@ -63,13 +57,11 @@ func LineAlignCenter(line string, lineWidth int) string {
 // If the given lineWidth is too small to fit the given line, it's returned without
 // padding, overflowing lineWidth.
 func LineAlignRight(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimRightFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	padLen := lineWidth - WordLen(trimmed)
+	trimmed := TrimSpace(line)
+	padLen := lineWidth - Len(trimmed)
 	if padLen < 0 {
 		padLen = 0
 	}
 	pad := strings.Repeat(" ", padLen)
-	return pad + recomposed
+	return pad + trimmed
 }
