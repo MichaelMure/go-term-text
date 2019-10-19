@@ -10,8 +10,16 @@
 `go-term-text` is a go package implementing a collection of algorithms to help format and manipulate text for the terminal.
 
 In particular, `go-term-text`:
-- support wide characters (chinese, japanese ...)
+- support wide characters (chinese, japanese ...) and emoji
 - handle properly ANSI escape sequences
+
+Included algorithms cover:
+- wrapping with padding and indentation
+- padding
+- text length
+- trimming
+- alignment
+- escape sequence extraction and reapplication
 
 ## Example
 
