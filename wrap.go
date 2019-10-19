@@ -2,8 +2,6 @@ package text
 
 import (
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -14,15 +12,6 @@ import (
 func init() {
 	runewidth.DefaultCondition.EastAsianWidth = false
 }
-
-type Alignment int
-
-const (
-	NoAlign Alignment = iota
-	AlignLeft
-	AlignCenter
-	AlignRight
-)
 
 // Wrap a text for a given line size.
 // Handle properly terminal color escape code
@@ -230,81 +219,6 @@ func softwrapLine(line string, textWidth int) string {
 	return out.String()
 }
 
-// EscapeItem hold the description of terminal escapes in a line.
-// 'item' is the actual escape command
-// 'pos' is the index in the rune array where the 'item' shall be inserted back.
-// For example, the escape item in "F\x1b33mox" is {"\x1b33m", 1}.
-type EscapeItem struct {
-	Item string
-	Pos  int
-}
-
-// ExtractTermEscapes extract terminal escapes out of a line and returns a new
-// line without terminal escapes and a slice of escape items. The terminal escapes
-// can be inserted back into the new line at rune index 'item.pos' to recover the
-// original line.
-//
-// Required: The line shall not contain "\n"
-func ExtractTermEscapes(line string) (string, []EscapeItem) {
-	var termEscapes []EscapeItem
-	var line1 strings.Builder
-
-	pos := 0
-	item := ""
-	occupiedRuneCount := 0
-	inEscape := false
-	for i, r := range []rune(line) {
-		if r == '\x1b' {
-			pos = i
-			item = string(r)
-			inEscape = true
-			continue
-		}
-		if inEscape {
-			item += string(r)
-			if r == 'm' {
-				termEscapes = append(termEscapes, EscapeItem{item, pos - occupiedRuneCount})
-				occupiedRuneCount += utf8.RuneCountInString(item)
-				inEscape = false
-			}
-			continue
-		}
-		line1.WriteRune(r)
-	}
-
-	return line1.String(), termEscapes
-}
-
-// ApplyTermEscapes apply the extracted terminal escapes to the edited line.
-// The only edit allowed is to insert "\n" like that in softwrapLine.
-// Callers shall ensure this since this function is not able to check it.
-func ApplyTermEscapes(line string, escapes []EscapeItem) string {
-	if len(escapes) == 0 {
-		return line
-	}
-
-	var out strings.Builder
-
-	currPos := 0
-	currItem := 0
-	for _, r := range line {
-		for currItem < len(escapes) && currPos == escapes[currItem].Pos {
-			out.WriteString(escapes[currItem].Item)
-			currItem++
-		}
-		out.WriteRune(r)
-		currPos++
-	}
-
-	// Don't forget the trailing escapes, if any.
-	for currItem < len(escapes) && currPos >= escapes[currItem].Pos {
-		out.WriteString(escapes[currItem].Item)
-		currItem++
-	}
-
-	return out.String()
-}
-
 // Segment a line into chunks, where each chunk consists of chars with the same
 // type and is not breakable.
 func segmentLine(s string) []string {
@@ -347,12 +261,14 @@ func segmentLine(s string) []string {
 	return chunks
 }
 
+type RuneType int
+
 // Rune categories
 //
 // These categories are so defined that each category forms a non-breakable
 // chunk. It IS NOT the same as unicode code point categories.
 const (
-	none int = iota
+	none RuneType = iota
 	wideChar
 	invisible
 	shortUnicode
@@ -361,7 +277,7 @@ const (
 )
 
 // Determine the category of a rune.
-func runeType(r rune) int {
+func runeType(r rune) RuneType {
 	rw := runewidth.RuneWidth(r)
 	if rw > 1 {
 		return wideChar
@@ -374,27 +290,6 @@ func runeType(r rune) int {
 	} else {
 		return visibleAscii
 	}
-}
-
-// WordLen return the length of a word, while ignoring the terminal escape
-// sequences
-func WordLen(word string) int {
-	length := 0
-	escape := false
-
-	for _, char := range word {
-		if char == '\x1b' {
-			escape = true
-		}
-		if !escape {
-			length += runewidth.RuneWidth(rune(char))
-		}
-		if char == 'm' {
-			escape = false
-		}
-	}
-
-	return length
 }
 
 // splitWord split a word at the given length, while ignoring the terminal escape sequences
@@ -436,119 +331,4 @@ func splitWord(word string, length int) (string, string) {
 	leftover := runes[len(result):]
 
 	return string(result), string(leftover)
-}
-
-// MaxLineLen return the length of the longest line, while ignoring the terminal escape sequences
-func MaxLineLen(text string) int {
-	lines := strings.Split(text, "\n")
-
-	max := 0
-
-	for _, line := range lines {
-		length := WordLen(line)
-		if length > max {
-			max = length
-		}
-	}
-
-	return max
-}
-
-// LineAlign align the given line as asked and apply the needed padding to match the given
-// lineWidth, while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned without
-// padding, overflowing lineWidth.
-func LineAlign(line string, lineWidth int, align Alignment) string {
-	switch align{
-	case NoAlign:
-		return line
-	case AlignLeft:
-		return LineAlignLeft(line, lineWidth)
-	case AlignCenter:
-		return LineAlignCenter(line, lineWidth)
-	case AlignRight:
-		return LineAlignRight(line, lineWidth)
-	}
-	panic("unknown alignment")
-}
-
-// LineAlignLeft align the given line on the left while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned without
-// padding, overflowing lineWidth.
-func LineAlignLeft(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimLeftFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	return recomposed
-}
-
-// LineAlignCenter align the given line on the center and apply the needed left
-// padding, while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned without
-// padding, overflowing lineWidth.
-func LineAlignCenter(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	totalPadLen := lineWidth - WordLen(trimmed)
-	if totalPadLen < 0 {
-		totalPadLen = 0
-	}
-	pad := strings.Repeat(" ", totalPadLen/2)
-	return pad + recomposed
-}
-
-// LineAlignRight align the given line on the right and apply the needed left
-// padding to match the given lineWidth, while ignoring the terminal escape sequences.
-// If the given lineWidth is too small to fit the given line, it's returned without
-// padding, overflowing lineWidth.
-func LineAlignRight(line string, lineWidth int) string {
-	cleaned, escapes := ExtractTermEscapes(line)
-	trimmed := strings.TrimRightFunc(cleaned, unicode.IsSpace)
-	recomposed := ApplyTermEscapes(trimmed, escapes)
-	padLen := lineWidth - WordLen(trimmed)
-	if padLen < 0 {
-		padLen = 0
-	}
-	pad := strings.Repeat(" ", padLen)
-	return pad + recomposed
-}
-
-// TrimSpace remove the leading and trailing whitespace while ignoring the
-// terminal escape sequences.
-// Returns the trimmed
-func TrimSpace(line string) (result string, left int, right int) {
-	cleaned, escapes := ExtractTermEscapes(line)
-
-	// trim left while counting
-	trimmed := strings.TrimLeftFunc(cleaned, func(r rune) bool {
-		if unicode.IsSpace(r) {
-			left++
-			return true
-		}
-		return false
-	})
-
-	// trim right while counting
-	trimmed = strings.TrimRightFunc(trimmed, func(r rune) bool {
-		if unicode.IsSpace(r) {
-			right++
-			return true
-		}
-		return false
-	})
-
-	// offset the escape sequences, bounded in the trimmed string space
-	for i, seq := range escapes {
-		if seq.Pos-left < 0 {
-			escapes[i].Pos = 0
-		} else if seq.Pos-left > len(trimmed) {
-			escapes[i].Pos = len(trimmed)
-		} else {
-			escapes[i].Pos = seq.Pos - left
-		}
-	}
-
-	result = ApplyTermEscapes(trimmed, escapes)
-	return
 }
