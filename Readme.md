@@ -20,6 +20,7 @@ Included algorithms cover:
 - trimming
 - alignment
 - escape sequence extraction and reapplication
+- truncation
 
 ## Example
 

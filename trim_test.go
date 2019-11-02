@@ -8,44 +8,36 @@ import (
 
 func TestTrimSpace(t *testing.T) {
 	cases := []struct {
-		line        string
-		output      string
-		left, right int
+		line   string
+		output string
 	}{
 		{
 			"foo",
 			"foo",
-			0, 0,
 		},
 		{
 			"foo      ",
 			"foo",
-			0, 6,
 		},
 		{
 			"      foo",
 			"foo",
-			6, 0,
 		},
 		{
 			"   \x1b[31mbar\x1b[0m     ",
 			"\x1b[31mbar\x1b[0m",
-			3, 5,
 		},
 		{
 			"\x1b[31m   bar     \x1b[0m",
 			"\x1b[31mbar\x1b[0m",
-			3, 5,
 		},
 		{
 			"  \x1b[31m   bar     \x1b[0m   ",
 			"\x1b[31mbar\x1b[0m",
-			5, 8,
 		},
 		{
 			"  敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。   ",
 			"敏捷 A \x1b31mquick\n的狐狸 fox\n跳\x1b0m过 jumps\nover a lazy\n了一只懒狗\ndog。",
-			2, 3,
 		},
 	}
 	for _, tc := range cases {
