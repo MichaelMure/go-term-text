@@ -92,6 +92,16 @@ func TestLeftPadLines(t *testing.T) {
 			0,
 		},
 		{
+			"foo\nbar\n",
+			"    foo\n    bar\n    ",
+			4,
+		},
+		{
+			"foo\n",
+			"    foo\n    ",
+			4,
+		},
+		{
 			"敏捷 A quick 的狐狸 \nfox 跳过 jumps\n over a lazy 了一只懒狗 dog。",
 			"    敏捷 A quick 的狐狸 \n    fox 跳过 jumps\n     over a lazy 了一只懒狗 dog。",
 			4,
