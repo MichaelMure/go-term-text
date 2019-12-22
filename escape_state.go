@@ -71,7 +71,7 @@ func (es *EscapeState) witnessCode(s string) {
 	}
 
 	color := func(ground int) Color {
-		if len(split) == 1 {
+		if len(split) < 1 {
 			// the whole sequence is broken, ignoring the rest
 			return nil
 		}

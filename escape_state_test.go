@@ -23,6 +23,11 @@ func TestEscapeState(t *testing.T) {
 			"baaar\x1b[48;2;118;131;193mfoobar\x1b[38;2;255;255;250mfooooo",
 			"\x1b[38;2;255;255;250;48;2;118;131;193m",
 		},
+		{
+			// broken color
+			"\x1b[48m",
+			"\x1b[0m",
+		},
 	}
 
 	for i, tc := range cases {
