@@ -73,6 +73,14 @@ func allWrapOpts(opts []WrapOption) *wrapOpts {
 func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 	wrapOpts := allWrapOpts(opts)
 
+	if len(wrapOpts.pad) >= lineWidth {
+		panic("padding too wide for linewidth")
+	}
+
+	if len(wrapOpts.indent) >= lineWidth {
+		panic("indent too wide for linewidth")
+	}
+
 	var lines []string
 	nbLine := 0
 
