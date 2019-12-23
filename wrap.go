@@ -70,21 +70,28 @@ func allWrapOpts(opts []WrapOption) *wrapOpts {
 // Wrap a text for a given line size.
 // Handle properly terminal color escape code
 // Options are accepted to configure things like indent, padding or alignment.
+// Return the wrapped text and the number of lines
 func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 	wrapOpts := allWrapOpts(opts)
 
 	if lineWidth <= 0 {
-		panic("linewidth zero or less")
-	}
-	if len(wrapOpts.pad) >= lineWidth {
-		panic("padding too wide for linewidth")
-	}
-	if len(wrapOpts.indent) >= lineWidth {
-		panic("indent too wide for linewidth")
+		return "", 1
 	}
 
 	var lines []string
 	nbLine := 0
+
+	if len(wrapOpts.indent) >= lineWidth {
+		// fallback rendering
+		lines = append(lines, strings.Repeat("⭬", lineWidth))
+		nbLine++
+		wrapOpts.indent = wrapOpts.pad
+	}
+	if len(wrapOpts.pad) >= lineWidth {
+		// fallback rendering
+		line := strings.Repeat("⭬", lineWidth)
+		return strings.Repeat(line+"\n", 5), 5
+	}
 
 	// Start with the indent
 	padStr := wrapOpts.indent
