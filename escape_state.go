@@ -230,6 +230,19 @@ func (es *EscapeState) String() string {
 	return fmt.Sprintf("\x1b[%sm", strings.Join(codes, ";"))
 }
 
+func (es *EscapeState) IsZero() bool {
+	return !es.Bold &&
+		!es.Dim &&
+		!es.Italic &&
+		!es.Underlined &&
+		!es.Blink &&
+		!es.Reverse &&
+		!es.Hidden &&
+		!es.CrossedOut &&
+		es.FgColor == nil &&
+		es.BgColor == nil
+}
+
 type ColorIndex int
 
 func (cInd ColorIndex) Codes() []string {

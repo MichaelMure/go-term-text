@@ -78,17 +78,38 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 		return "", 1
 	}
 
-	var lines []string
+	var result strings.Builder
+	var state EscapeState
 	nbLine := 0
 
-	if len(wrapOpts.indent) >= lineWidth {
-		// fallback rendering
-		lines = append(lines, strings.Repeat("⭬", lineWidth))
+	// output function to:
+	// - set the endlines (same as strings.Join())
+	// - reset and set again the escape state around the padding/indent
+	output := func(padding string, content string) {
+		if nbLine > 0 {
+			result.WriteString("\n")
+		}
+
+		zeroState := state.IsZero()
+		if !zeroState && len(padding) > 0 {
+			result.WriteString("\x1b[0m")
+		}
+		result.WriteString(padding)
+		if !zeroState && len(padding) > 0 {
+			result.WriteString(state.String())
+		}
+		result.WriteString(content)
 		nbLine++
+		state.Witness(content)
+	}
+
+	if len(wrapOpts.indent) >= lineWidth {
+		// indent is too wide, fallback rendering
+		output(strings.Repeat("⭬", lineWidth), "")
 		wrapOpts.indent = wrapOpts.pad
 	}
 	if len(wrapOpts.pad) >= lineWidth {
-		// fallback rendering
+		// padding is too wide, fallback rendering
 		line := strings.Repeat("⭬", lineWidth)
 		return strings.Repeat(line+"\n", 5), 5
 	}
@@ -100,9 +121,9 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 	// tabs are formatted as 4 spaces
 	text = strings.Replace(text, "\t", "    ", -1)
 
-	// NOTE: text is first segmented into lines so that softwrapLine can handle.
+	// NOTE: text is first segmented into lines so that softwrapLine can handle individually
 	for i, line := range strings.Split(text, "\n") {
-		// on the second line, use the padding instead
+		// on the second line, switch to use the padding instead
 		if i == 1 {
 			padStr = wrapOpts.pad
 			padLen = Len(wrapOpts.pad)
@@ -110,8 +131,7 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 
 		if line == "" || strings.TrimSpace(line) == "" {
 			// nothing in the line, we just add the non-empty part of the padding
-			lines = append(lines, strings.TrimRight(padStr, " "))
-			nbLine++
+			output(strings.TrimRight(padStr, " "), "")
 			continue
 		}
 
@@ -119,19 +139,20 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 		split := strings.Split(wrapped, "\n")
 
 		if i == 0 && len(split) > 1 {
-			// the very first line got wrapped
-			// that means we need to switch to the normal padding
-			// use the first wrapped line, ignore everything else and
-			// wrap the remaining of the line with the normal padding.
+			// the very first line got wrapped.
+			// that means we need to use the indent, use the first wrapped line, discard the rest
+			// switch to the normal padding, do the softwrap again with the remainder,
+			// and fallback to the normal wrapping flow
 
 			content := LineAlign(strings.TrimRight(split[0], " "), lineWidth-padLen, wrapOpts.align)
-			lines = append(lines, padStr+content)
-			nbLine++
+			output(padStr, content)
+
 			line = strings.TrimPrefix(line, split[0])
 			line = strings.TrimLeft(line, " ")
 
 			padStr = wrapOpts.pad
 			padLen = Len(wrapOpts.pad)
+
 			wrapped = softwrapLine(line, lineWidth-padLen)
 			split = strings.Split(wrapped, "\n")
 		}
@@ -140,16 +161,15 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 			if j == 0 {
 				// keep the left padding of the wrapped line
 				content := LineAlign(strings.TrimRight(seg, " "), lineWidth-padLen, wrapOpts.align)
-				lines = append(lines, padStr+content)
+				output(padStr, content)
 			} else {
 				content := LineAlign(strings.TrimSpace(seg), lineWidth-padLen, wrapOpts.align)
-				lines = append(lines, padStr+content)
+				output(padStr, content)
 			}
-			nbLine++
 		}
 	}
 
-	return strings.Join(lines, "\n"), nbLine
+	return result.String(), nbLine
 }
 
 // WrapLeftPadded wrap a text for a given line size with a left padding.
@@ -189,7 +209,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 }
 
 // Break a line into several lines so that each line consumes at most
-// 'textWidth' cells.  Lines break at groups of white spaces and multibyte
+// 'lineWidth' cells.  Lines break at groups of white spaces and multicell
 // chars. Nothing is removed from the original text so that it behaves like a
 // softwrap.
 //
@@ -199,7 +219,7 @@ func WrapWithPadIndentAlign(text string, lineWidth int, indent string, pad strin
 // breaks ("\n") are inserted between these groups so that the total length
 // between breaks does not exceed the required width. Words that are longer than
 // the textWidth are broken into pieces no longer than textWidth.
-func softwrapLine(line string, textWidth int) string {
+func softwrapLine(line string, lineWidth int) string {
 	escaped, escapes := ExtractTermEscapes(line)
 
 	chunks := segmentLine(escaped)
@@ -253,20 +273,20 @@ func softwrapLine(line string, textWidth int) string {
 	for !empty() {
 		wl := Len(peek())
 
-		if width+wl <= textWidth {
+		if width+wl <= lineWidth {
 			// the chunk fit in the available space
 			outputString(pop())
 			width += wl
-			if width == textWidth && !empty() {
+			if width == lineWidth && !empty() {
 				// only add line break when there is more chunk to come
 				out.WriteRune('\n')
 				width = 0
 			}
-		} else if wl > textWidth {
+		} else if wl > lineWidth {
 			// words too long for a full line are split to fill the remaining space.
 			// But if the long words is the first non-space word in the middle of the
 			// line, preceding spaces shall not be counted in word splitting.
-			splitWidth := textWidth - width
+			splitWidth := lineWidth - width
 			if strings.HasSuffix(out.String(), "\n"+strings.Repeat(" ", width)) {
 				splitWidth += width
 			}
