@@ -86,13 +86,12 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 	// - set the endlines (same as strings.Join())
 	// - reset and set again the escape state around the padding/indent
 	output := func(padding string, content string) {
-		if nbLine > 0 {
-			result.WriteString("\n")
-		}
-
 		zeroState := state.IsZero()
 		if !zeroState && len(padding) > 0 {
 			result.WriteString("\x1b[0m")
+		}
+		if nbLine > 0 {
+			result.WriteString("\n")
 		}
 		result.WriteString(padding)
 		if !zeroState && len(padding) > 0 {
