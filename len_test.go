@@ -42,7 +42,7 @@ func TestLen(t *testing.T) {
 		},
 		{
 			"✔",
-			2,
+			1,
 		},
 	}
 
