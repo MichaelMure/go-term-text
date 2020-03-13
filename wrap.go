@@ -102,15 +102,15 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 		state.Witness(content)
 	}
 
-	if len(wrapOpts.indent) >= lineWidth {
+	if Len(wrapOpts.indent) >= lineWidth {
 		// indent is too wide, fallback rendering
 		output(strings.Repeat("⭬", lineWidth), "")
 		wrapOpts.indent = wrapOpts.pad
 	}
-	if len(wrapOpts.pad) >= lineWidth {
+	if Len(wrapOpts.pad) >= lineWidth {
 		// padding is too wide, fallback rendering
 		line := strings.Repeat("⭬", lineWidth)
-		return strings.Repeat(line+"\n", 5), 5
+		return strings.Repeat(line+"\n", 5), 6
 	}
 
 	// Start with the indent

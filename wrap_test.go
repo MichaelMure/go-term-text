@@ -306,6 +306,46 @@ func TestWrapWithPadIndentAlign(t *testing.T) {
 			54, "<indent>", "<pad>",
 			AlignCenter,
 		},
+		// Handle indent and padding with wide characters and ANSI escape codes
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.",
+			"\x1b[31m狐狸跳过\x1b[0m     The Lorem ipsum text is typically composed of\n" +
+"\x1b[31m狐\x1b[0m pseudo-Latin words. It is commonly used as placeholder text\n" +
+"\x1b[31m狐\x1b[0m   to examine or demonstrate the visual effects of various\n" +
+"\x1b[31m狐\x1b[0m                       graphic design.",
+			63, "\x1b[31m狐狸跳过\x1b[0m", "\x1b[31m狐\x1b[0m",
+			AlignCenter,
+		},
+		// handle too long indentation
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.",
+			"⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n" +
+			"<pad>The Lorem ipsum\n"+
+			"<pad>text is\n"+
+			"<pad>typically\n"+
+			"<pad>composed of\n"+
+			"<pad>pseudo-Latin\n"+
+			"<pad>words. It is\n"+
+			"<pad>commonly used\n"+
+			"<pad>as placeholder\n"+
+			"<pad>text to examine\n"+
+			"<pad>or demonstrate\n"+
+			"<pad>the visual\n"+
+			"<pad>effects of\n"+
+			"<pad>various graphic\n"+
+			"<pad>design.",
+			20, "<indentindentindent>", "<pad>",
+			AlignLeft,
+		},
+		// handle too long padding
+		{
+			"The Lorem ipsum text is typically composed of pseudo-Latin words. It is commonly used as placeholder text to examine or demonstrate the visual effects of various graphic design.",
+			"⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n" +
+				"⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n" +
+				"⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬⭬\n",
+			20, "<indentindentindent>", "<padpadpadpadpadpad>",
+			AlignLeft,
+		},
 	}
 
 	for i, tc := range cases {

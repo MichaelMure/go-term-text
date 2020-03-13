@@ -44,6 +44,11 @@ func TestLen(t *testing.T) {
 			"✔",
 			1,
 		},
+		{
+			// used in Wrap()
+			"⭬",
+			1,
+		},
 	}
 
 	for i, tc := range cases {
