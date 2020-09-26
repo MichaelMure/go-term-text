@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractApplyTermEscapes(t *testing.T) {
@@ -135,5 +136,51 @@ func TestOffsetEscapes(t *testing.T) {
 	for _, tc := range cases {
 		result := OffsetEscapes(tc.input, tc.offset)
 		assert.Equal(t, tc.output, result)
+	}
+}
+
+func TestEscapeDetector(t *testing.T) {
+	input := "This \u001B[31mis an\u001B[0m example."
+	states := []struct {
+		inEscape bool
+		started  bool
+		ended    bool
+	}{
+		{false, false, false}, // T
+		{false, false, false}, // h
+		{false, false, false}, // i
+		{false, false, false}, // s
+		{false, false, false}, //
+		{true, true, false},   // \u001b
+		{true, false, false},  // [
+		{true, false, false},  // 3
+		{true, false, false},  // 1
+		{true, false, true},   // m
+		{false, false, false}, // i
+		{false, false, false}, // s
+		{false, false, false}, //
+		{false, false, false}, // a
+		{false, false, false}, // n
+		{true, true, false},   // \u001b
+		{true, false, false},  // [
+		{true, false, false},  // 0
+		{true, false, true},   // m
+		{false, false, false}, //
+		{false, false, false}, // e
+		{false, false, false}, // x
+		{false, false, false}, // a
+		{false, false, false}, // m
+		{false, false, false}, // p
+		{false, false, false}, // l
+		{false, false, false}, // e
+		{false, false, false}, // .
+	}
+
+	var ed EscapeDetector
+	for i, r := range input {
+		ed.Witness(r)
+		require.Equal(t, states[i].inEscape, ed.InEscape())
+		require.Equal(t, states[i].started, ed.Started())
+		require.Equal(t, states[i].ended, ed.Ended())
 	}
 }
