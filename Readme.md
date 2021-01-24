@@ -1,6 +1,6 @@
 # go-term-text
 
-[![Build Status](https://travis-ci.org/MichaelMure/go-term-text.svg?branch=master)](https://travis-ci.org/MichaelMure/go-term-text)
+![Build Status](https://github.com/MichaelMure/go-term-text/workflows/Go%20build%20and%20test/badge.svg)
 [![GoDoc](https://godoc.org/github.com/MichaelMure/go-term-text?status.svg)](https://godoc.org/github.com/MichaelMure/go-term-text)
 [![Go Report Card](https://goreportcard.com/badge/github.com/MichaelMure/go-term-text)](https://goreportcard.com/report/github.com/MichaelMure/go-term-text)
 [![codecov](https://codecov.io/gh/MichaelMure/go-term-text/branch/master/graph/badge.svg)](https://codecov.io/gh/MichaelMure/go-term-text)
