@@ -22,28 +22,28 @@ type EscapeItem struct {
 // Required: The line shall not contain "\n"
 func ExtractTermEscapes(line string) (string, []EscapeItem) {
 	var termEscapes []EscapeItem
+	var ed EscapeDetector
 	var line1 strings.Builder
 
 	pos := 0
 	item := ""
 	occupiedRuneCount := 0
-	inEscape := false
 	for i, r := range []rune(line) {
-		if r == '\x1b' {
+		ed.Witness(r)
+		if ed.Started() {
 			pos = i
 			item = string(r)
-			inEscape = true
 			continue
 		}
-		if inEscape {
+		if ed.InEscape() {
 			item += string(r)
-			if r == 'm' {
+			if ed.Ended() {
 				termEscapes = append(termEscapes, EscapeItem{item, pos - occupiedRuneCount})
 				occupiedRuneCount += utf8.RuneCountInString(item)
-				inEscape = false
 			}
 			continue
 		}
+
 		line1.WriteRune(r)
 	}
 
@@ -92,4 +92,65 @@ func OffsetEscapes(escapes []EscapeItem, offset int) []EscapeItem {
 		}
 	}
 	return result
+}
+
+// EscapeDetector detect escape sequences in a stream of runes.
+// Supported sequences are:
+// - Select Graphic Rendition (SGR)
+// - Operating System Command (OSC)
+//
+// See https://chromium.googlesource.com/apps/libapps/+/refs/heads/master/hterm/doc/ControlSequences.md
+type EscapeDetector struct {
+	inEscape  bool
+	started   bool
+	ended     bool
+	firstRune rune
+}
+
+func (ed *EscapeDetector) Witness(r rune) {
+	if ed.inEscape && ed.ended {
+		ed.inEscape = false
+	}
+
+	if !ed.inEscape {
+		switch r {
+		case '\x1b': // SGR + OSC
+			ed.inEscape = true
+			ed.started = true
+			ed.ended = false
+			ed.firstRune = r
+		default:
+			ed.ended = false
+		}
+	} else {
+		switch {
+		case ed.firstRune == '\x1b' && r == 'm': // SGR
+			ed.inEscape = true
+			ed.started = false
+			ed.ended = true
+			ed.firstRune = rune(0)
+		case ed.firstRune == '\x1b' && r == '\x07': // OSC
+			ed.inEscape = true
+			ed.started = false
+			ed.ended = true
+			ed.firstRune = rune(0)
+		default:
+			ed.started = false
+		}
+	}
+}
+
+// InEscape indicate that the last rune was part of a sequence
+func (ed *EscapeDetector) InEscape() bool {
+	return ed.inEscape
+}
+
+// Started indicate that the last rune started a sequence
+func (ed *EscapeDetector) Started() bool {
+	return ed.started
+}
+
+// Ended indicate that the last rune ended a sequence
+func (ed *EscapeDetector) Ended() bool {
+	return ed.ended
 }
