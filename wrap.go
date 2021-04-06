@@ -6,13 +6,6 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// Force runewidth not to treat ambiguous runes as wide chars, so that things
-// like unicode ellipsis/up/down/left/right glyphs can have correct runewidth
-// and can be displayed correctly in terminals.
-func init() {
-	runewidth.DefaultCondition.EastAsianWidth = false
-}
-
 type wrapOpts struct {
 	indent string
 	pad    string
