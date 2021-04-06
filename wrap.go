@@ -95,7 +95,7 @@ func Wrap(text string, lineWidth int, opts ...WrapOption) (string, int) {
 		}
 		result.WriteString(padding)
 		if !zeroState && len(padding) > 0 {
-			result.WriteString(state.String())
+			result.WriteString(state.FormatString())
 		}
 		result.WriteString(content)
 		nbLine++
