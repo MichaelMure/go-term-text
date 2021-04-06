@@ -49,6 +49,18 @@ func TestLen(t *testing.T) {
 			"⭬",
 			1,
 		},
+		{
+			"\u2714\ufe0f ",
+			3,
+		},
+		{
+			"✔️ ",
+			3,
+		},
+		{
+			"❌ ",
+			3,
+		},
 	}
 
 	for i, tc := range cases {

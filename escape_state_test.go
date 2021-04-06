@@ -9,7 +9,7 @@ func TestEscapeState(t *testing.T) {
 	}{
 		{
 			"Format: ![Alt Text](\x1b[34murl\x1b[0m)",
-			"\x1b[0m",
+			"",
 		},
 		{
 			"\x1b[1;2;3;4;5;7;8;9;33;43m",
@@ -26,19 +26,21 @@ func TestEscapeState(t *testing.T) {
 		{
 			// broken color
 			"\x1b[48m",
-			"\x1b[0m",
+			"",
 		},
 	}
 
 	for i, tc := range cases {
-		es := &EscapeState{}
+		t.Run(tc.input, func(t *testing.T) {
+			es := &EscapeState{}
 
-		es.Witness(tc.input)
+			es.Witness(tc.input)
 
-		result := es.String()
-		if result != tc.output {
-			t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%s`\n\nActual Output:\n\n`%s`",
-				i, tc.input, tc.output, result)
-		}
+			result := es.FormatString()
+			if result != tc.output {
+				t.Fatalf("Case %d Input:\n\n`%s`\n\nExpected Output:\n\n`%s`\n\nActual Output:\n\n`%s`",
+					i, tc.input, tc.output, result)
+			}
+		})
 	}
 }

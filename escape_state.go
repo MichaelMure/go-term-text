@@ -188,7 +188,8 @@ func (es *EscapeState) reset() {
 	*es = EscapeState{}
 }
 
-func (es *EscapeState) String() string {
+// FormatString return the escape codes to enable that formatting.
+func (es *EscapeState) FormatString() string {
 	var codes []string
 
 	if es.Bold {
@@ -224,10 +225,19 @@ func (es *EscapeState) String() string {
 	}
 
 	if len(codes) == 0 {
-		return "\x1b[0m"
+		return ""
 	}
 
 	return fmt.Sprintf("\x1b[%sm", strings.Join(codes, ";"))
+}
+
+// ResetString return either the global reset code or nothing, depending on if
+// this state has something to reset or not.
+func (es *EscapeState) ResetString() string {
+	if es.IsZero() {
+		return ""
+	}
+	return "\x1b[0m"
 }
 
 func (es *EscapeState) IsZero() bool {
