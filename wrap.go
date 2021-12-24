@@ -382,16 +382,14 @@ func splitWord(word string, length int) (string, string) {
 	runes := []rune(word)
 	var result []rune
 	added := 0
-	escape := false
 
 	if length == 0 {
 		return "", word
 	}
 
+	var ed EscapeDetector
 	for _, r := range runes {
-		if r == '\x1b' {
-			escape = true
-		}
+		ed.Witness(r)
 
 		width := runewidth.RuneWidth(r)
 		if width+added > length {
@@ -401,15 +399,11 @@ func splitWord(word string, length int) (string, string) {
 
 		result = append(result, r)
 
-		if !escape {
+		if !ed.InEscape() {
 			added += width
 			if added >= length {
 				break
 			}
-		}
-
-		if r == 'm' {
-			escape = false
 		}
 	}
 

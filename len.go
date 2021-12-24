@@ -10,17 +10,12 @@ import (
 // escape sequences.
 func Len(text string) int {
 	length := 0
-	escape := false
+	var ed EscapeDetector
 
-	for _, char := range text {
-		if char == '\x1b' {
-			escape = true
-		}
-		if !escape {
-			length += runewidth.RuneWidth(char)
-		}
-		if char == 'm' {
-			escape = false
+	for _, r := range []rune(text) {
+		ed.Witness(r)
+		if !ed.InEscape() {
+			length += runewidth.RuneWidth(r)
 		}
 	}
 
